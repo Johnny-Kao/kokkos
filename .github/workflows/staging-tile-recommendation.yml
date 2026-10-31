@@ -1,0 +1,54 @@
+name: Staging TileSizeRecommended arithmetic regression
+
+on:
+  push:
+    branches: [staging/tilesize-recommendation-overflow]
+    paths:
+      - core/src/KokkosExp_MDRangePolicy.hpp
+      - core/unit_test/TestMDRangePolicyConstructors.hpp
+      - .github/workflows/staging-tile-recommendation.yml
+  workflow_dispatch:
+
+jobs:
+  native-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: g++
+            backend: Serial
+            target: Kokkos_CoreUnitTest_Serial1
+            test: serial.md_range_policy_recommendation_near_int_max
+          - compiler: clang++
+            backend: Serial
+            target: Kokkos_CoreUnitTest_Serial1
+            test: serial.md_range_policy_recommendation_near_int_max
+          - compiler: g++
+            backend: OpenMP
+            target: Kokkos_CoreUnitTest_OpenMP
+            test: openmp.md_range_policy_recommendation_near_int_max
+    name: ${{ matrix.compiler }} / ${{ matrix.backend }}
+    steps:
+      - name: Checkout staging fork
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Configure Kokkos
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DKokkos_ENABLE_TESTS=ON \
+            -DKokkos_ENABLE_SERIAL=ON \
+            -DKokkos_ENABLE_OPENMP=${{ matrix.backend == 'OpenMP' && 'ON' || 'OFF' }} \
+            -DKokkos_ENABLE_EXAMPLES=OFF \
+            -DCMAKE_CXX_FLAGS="-fsanitize=signed-integer-overflow -fno-sanitize-recover=signed-integer-overflow"
+      - name: Build native unit tests
+        run: cmake --build build --target ${{ matrix.target }} --parallel 4
+      - name: Execute native regression under UBSan
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ./build/core/unit_test/${{ matrix.target }} --gtest_filter=${{ matrix.test }}
