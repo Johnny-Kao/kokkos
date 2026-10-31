@@ -1218,7 +1218,7 @@ struct HostIterateTile {
     bool is_full_tile = true;
 
     for (int i = 0; i < RP::rank; ++i) {
-      if ((offset[i] + m_tile[i]) <= m_upper[i]) {
+      if (m_tile[i] <= m_upper[i] - offset[i]) {
         partial_tile[i] = m_tile[i];
       } else {
         is_full_tile = false;

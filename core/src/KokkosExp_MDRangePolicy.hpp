@@ -559,8 +559,9 @@ class MDRangePolicy<P, Properties...>
         }
       }
 
+      // Compute ceil(length / tile) without overflowing index_type.
       this->m_tile_end[i] = static_cast<index_type>(
-          (length + this->m_tile[i] - 1) / this->m_tile[i]);
+          length / this->m_tile[i] + (length % this->m_tile[i] != 0));
       this->m_num_tiles *= this->m_tile_end[i];
       // FIXME: m_tile could be of a type wider than int and have a value
       // that won't fit in int, though not in practice

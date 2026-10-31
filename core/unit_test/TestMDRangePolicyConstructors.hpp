@@ -12,6 +12,8 @@ import kokkos.core_impl;
 #endif
 
 #include <regex>
+#include <cstdint>
+#include <limits>
 
 namespace {
 
@@ -345,6 +347,51 @@ TEST(TEST_CATEGORY, md_range_policy_impl_set_space) {
   ASSERT_EQ(policy_new.space(), exec_new);
   ASSERT_EQ(policy_new.lower(), (typename policy_t::point_type{42, 47}));
   ASSERT_EQ(policy_new.upper(), (typename policy_t::point_type{666, 999}));
+}
+
+
+template <Kokkos::Iterate Direction>
+void test_mdrange_tile_arithmetic_near_index_limit() {
+  using Index = std::int32_t;
+  constexpr Index max_index = std::numeric_limits<Index>::max();
+  using Policy = Kokkos::MDRangePolicy<
+      TEST_EXECSPACE, Kokkos::Rank<2, Direction, Direction>,
+      Kokkos::IndexType<Index>>;
+
+  // The entire flat work range and resulting tile count fit in Index.
+  // Only the intermediate (length + tile - 1) would overflow.
+  Policy many_tiles({0, 0}, {max_index, 1}, {2, 1});
+  EXPECT_EQ(many_tiles.impl_num_tiles(), Index{1073741824});
+
+  // A single valid iteration, even though its absolute index is near INT_MAX.
+  // The final tile must be partial, not a full tile of four iterations.
+  const Index begin = max_index - 1;
+  const Policy one_element({begin, 0}, {max_index, 1}, {4, 1});
+  Kokkos::View<int*, TEST_EXECSPACE> counters("tile_bounds_counts", 2);
+  Kokkos::deep_copy(counters, 0);
+  Kokkos::parallel_for(
+      "mdrange_tile_bounds_near_limit", one_element,
+      KOKKOS_LAMBDA(Index i, Index j) {
+        Kokkos::atomic_increment(&counters(0));
+        if (i != begin || j != 0) Kokkos::atomic_increment(&counters(1));
+      });
+  auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), counters);
+  EXPECT_EQ(result(0), 1);
+  EXPECT_EQ(result(1), 0);
+
+  int sum = 0;
+  Kokkos::parallel_reduce(
+      "mdrange_reduce_tile_bounds_near_limit", one_element,
+      KOKKOS_LAMBDA(Index i, Index j, int& update) {
+        update += (i == begin && j == 0) ? 1 : 100;
+      },
+      sum);
+  EXPECT_EQ(sum, 1);
+}
+
+TEST(TEST_CATEGORY, md_range_policy_tile_arithmetic_near_index_limit) {
+  test_mdrange_tile_arithmetic_near_index_limit<Kokkos::Iterate::Left>();
+  test_mdrange_tile_arithmetic_near_index_limit<Kokkos::Iterate::Right>();
 }
 
 }  // namespace

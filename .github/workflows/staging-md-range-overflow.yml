@@ -1,0 +1,55 @@
+name: Staging MDRange overflow regression
+on:
+  push:
+    branches:
+      - staging/mdrange-tile-overflow-fix
+    paths:
+      - core/src/KokkosExp_MDRangePolicy.hpp
+      - core/src/impl/KokkosExp_Host_IterateTile.hpp
+      - core/unit_test/TestMDRangePolicyConstructors.hpp
+      - .github/workflows/staging-md-range-overflow.yml
+  workflow_dispatch:
+
+jobs:
+  native-regressions:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: g++
+            backend: Serial
+            target: Kokkos_CoreUnitTest_Serial2
+            filter: serial.md_range_policy_tile_arithmetic_near_index_limit
+          - compiler: clang++
+            backend: Serial
+            target: Kokkos_CoreUnitTest_Serial2
+            filter: serial.md_range_policy_tile_arithmetic_near_index_limit
+          - compiler: g++
+            backend: OpenMP
+            target: Kokkos_CoreUnitTest_OpenMP
+            filter: openmp.md_range_policy_tile_arithmetic_near_index_limit
+    name: ${{ matrix.compiler }} / ${{ matrix.backend }}
+    steps:
+      - name: Checkout staging fork
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Configure Kokkos and native unit tests
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DKokkos_ENABLE_TESTS=ON \
+            -DKokkos_ENABLE_SERIAL=ON \
+            -DKokkos_ENABLE_OPENMP=${{ matrix.backend == 'OpenMP' && 'ON' || 'OFF' }} \
+            -DKokkos_ENABLE_EXAMPLES=OFF \
+            -DCMAKE_CXX_FLAGS="-fsanitize=signed-integer-overflow -fno-sanitize-recover=signed-integer-overflow"
+      - name: Build native Kokkos unit test target
+        run: cmake --build build --target ${{ matrix.target }} --parallel 4
+      - name: Run focused upstream regression test
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ./build/core/unit_test/${{ matrix.target }} --gtest_filter=${{ matrix.filter }}
