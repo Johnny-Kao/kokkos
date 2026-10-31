@@ -11,9 +11,9 @@ import kokkos.core_impl;
 #include <Kokkos_Core.hpp>
 #endif
 
-#include <regex>
 #include <cstdint>
 #include <limits>
+#include <regex>
 
 namespace {
 
@@ -349,7 +349,6 @@ TEST(TEST_CATEGORY, md_range_policy_impl_set_space) {
   ASSERT_EQ(policy_new.upper(), (typename policy_t::point_type{666, 999}));
 }
 
-
 template <Kokkos::Iterate Direction>
 void test_mdrange_tile_arithmetic_near_index_limit() {
   using Index = std::int32_t;
@@ -372,10 +371,11 @@ void test_mdrange_tile_arithmetic_near_index_limit() {
   Kokkos::parallel_for(
       "mdrange_tile_bounds_near_limit", one_element,
       KOKKOS_LAMBDA(Index i, Index j) {
-        Kokkos::atomic_increment(&counters(0));
-        if (i != begin || j != 0) Kokkos::atomic_increment(&counters(1));
+        Kokkos::atomic_add(&counters(0), 1);
+        if (i != begin || j != 0) Kokkos::atomic_add(&counters(1), 1);
       });
-  auto result = Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), counters);
+  auto result =
+      Kokkos::create_mirror_view_and_copy(Kokkos::HostSpace(), counters);
   EXPECT_EQ(result(0), 1);
   EXPECT_EQ(result(1), 0);
 
