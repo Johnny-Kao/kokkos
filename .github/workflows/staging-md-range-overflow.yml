@@ -20,11 +20,11 @@ jobs:
         include:
           - compiler: g++
             backend: Serial
-            target: Kokkos_CoreUnitTest_Serial2
+            target: Kokkos_CoreUnitTest_Serial1
             filter: serial.md_range_policy_tile_arithmetic_near_index_limit
           - compiler: clang++
             backend: Serial
-            target: Kokkos_CoreUnitTest_Serial2
+            target: Kokkos_CoreUnitTest_Serial1
             filter: serial.md_range_policy_tile_arithmetic_near_index_limit
           - compiler: g++
             backend: OpenMP
