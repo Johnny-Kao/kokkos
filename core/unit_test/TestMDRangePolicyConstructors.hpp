@@ -359,8 +359,15 @@ void test_mdrange_tile_arithmetic_near_index_limit() {
 
   // The entire flat work range and resulting tile count fit in Index.
   // Only the intermediate (length + tile - 1) would overflow.
-  Policy many_tiles({0, 0}, {max_index, 1}, {2, 1});
-  EXPECT_EQ(many_tiles.impl_num_tiles(), Index{1073741824});
+  // Keep the large dimension outermost so this test only checks tile
+  // count arithmetic, not the independent default-tile recommendation path.
+  if constexpr (Direction == Kokkos::Iterate::Left) {
+    Policy many_tiles({0, 0}, {1, max_index}, {1, 2});
+    EXPECT_EQ(many_tiles.impl_num_tiles(), Index{1073741824});
+  } else {
+    Policy many_tiles({0, 0}, {max_index, 1}, {2, 1});
+    EXPECT_EQ(many_tiles.impl_num_tiles(), Index{1073741824});
+  }
 
   // A single valid iteration, even though its absolute index is near INT_MAX.
   // The final tile must be partial, not a full tile of four iterations.
