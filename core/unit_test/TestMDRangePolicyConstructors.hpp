@@ -380,4 +380,27 @@ TEST(TEST_CATEGORY, md_range_policy_recommendation_near_int_max) {
   }
 }
 
+
+TEST(TEST_CATEGORY, md_range_policy_explicit_tile_product_guard) {
+  if constexpr (std::is_same_v<TEST_EXECSPACE, Kokkos::Serial>
+#ifdef KOKKOS_ENABLE_OPENMP
+                || std::is_same_v<TEST_EXECSPACE, Kokkos::OpenMP>
+#endif
+  ) {
+    using policy_type = Kokkos::MDRangePolicy<
+        TEST_EXECSPACE, Kokkos::Rank<2>, Kokkos::IndexType<std::int64_t>>;
+    // The full extent fits int64_t; the explicit tile product exceeds int.
+    // This is distinct from the default tile recommendation path.
+    EXPECT_DEATH(
+        { policy_type policy({0LL, 0LL}, {50000LL, 50000LL},
+                             {50000LL, 50000LL}); },
+        "tile dimensions error");
+    // The same bounds with safe tiles must remain valid.
+    policy_type safe({0LL, 0LL}, {50000LL, 50000LL}, {1LL, 1LL});
+    EXPECT_EQ(safe.impl_prod_tile_dims(), 1);
+  } else {
+    GTEST_SKIP() << "Host tile product guard regression";
+  }
+}
+
 }  // namespace
