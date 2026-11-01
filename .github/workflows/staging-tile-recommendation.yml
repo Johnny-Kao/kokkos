@@ -1,8 +1,8 @@
-name: Staging TileSizeRecommended arithmetic regression
+name: Staging MDRangePolicy independent overflow regression
 
 on:
   push:
-    branches: [staging/tilesize-recommendation-overflow]
+    branches: [staging/tilesize-recommendation-overflow, staging/mdrange-prod-tile-precheck-review]
     paths:
       - core/src/KokkosExp_MDRangePolicy.hpp
       - core/unit_test/TestMDRangePolicyConstructors.hpp
@@ -20,7 +20,7 @@ jobs:
           - compiler: g++
             backend: Serial
             target: Kokkos_CoreUnitTest_Serial1
-            test: serial.md_range_policy_recommendation_near_int_max
+            test: 'serial.md_range_policy_*'
           - compiler: clang++
             backend: Serial
             target: Kokkos_CoreUnitTest_Serial1
@@ -28,7 +28,7 @@ jobs:
           - compiler: g++
             backend: OpenMP
             target: Kokkos_CoreUnitTest_OpenMP
-            test: openmp.md_range_policy_recommendation_near_int_max
+            test: 'openmp.md_range_policy_*'
     name: ${{ matrix.compiler }} / ${{ matrix.backend }}
     steps:
       - name: Checkout staging fork
