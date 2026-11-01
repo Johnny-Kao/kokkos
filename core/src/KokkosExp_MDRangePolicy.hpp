@@ -562,8 +562,19 @@ class MDRangePolicy<P, Properties...>
       this->m_tile_end[i] = static_cast<index_type>(
           (length + this->m_tile[i] - 1) / this->m_tile[i]);
       this->m_num_tiles *= this->m_tile_end[i];
-      // FIXME: m_tile could be of a type wider than int and have a value
-      // that won't fit in int, though not in practice
+      // Validate before narrowing or multiplying: a post-multiply check
+      // cannot reliably detect signed overflow.
+      if (this->m_tile[i] <= 0 ||
+          this->m_tile[i] > std::numeric_limits<int>::max() ||
+          this->m_prod_tile_dims >
+              this->m_max_total_tile_size / static_cast<int>(this->m_tile[i])) {
+        std::string msg =
+            "Kokkos::MDRangePolicy tile dimensions error: Product of tile "
+            "dimensions exceeds the maximum total tile size (" +
+            std::to_string(this->m_max_total_tile_size) +
+            ") - choose smaller tile dims\n";
+        Kokkos::abort(msg.c_str());
+      }
       this->m_prod_tile_dims *= static_cast<int>(this->m_tile[i]);
     }
 
