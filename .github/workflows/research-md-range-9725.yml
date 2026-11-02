@@ -25,9 +25,9 @@ jobs:
             -DKokkos_ENABLE_OPENMP=${{ matrix.backend == 'OPENMP' && 'ON' || 'OFF' }} \
             -DKokkos_ENABLE_THREADS=${{ matrix.backend == 'THREADS' && 'ON' || 'OFF' }}
       - name: Build selected core unit tests
-        run: cmake --build build --target Kokkos_CoreUnitTest_${{ matrix.backend }}1 --parallel 2
+        run: cmake --build build --target Kokkos_CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }} --parallel 2
       - name: Run MDRange regression tests
         shell: bash
         run: |
-          ctest --test-dir build -N -R 'CoreUnitTest.*${{ matrix.backend }}'
-          ctest --test-dir build --output-on-failure -R 'CoreUnitTest.*${{ matrix.backend }}'
+          ctest --test-dir build -N -R 'CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }}'
+          ctest --test-dir build --output-on-failure -R 'CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }}'
