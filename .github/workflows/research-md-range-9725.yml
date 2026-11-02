@@ -29,5 +29,8 @@ jobs:
       - name: Run MDRange regression tests
         shell: bash
         run: |
-          ctest --test-dir build -N -R 'CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }}'
+          ctest --test-dir build -N -R '^Kokkos_CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }}
           ctest --test-dir build --output-on-failure -R 'CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }}'
+
+          ctest --test-dir build --output-on-failure -R '^Kokkos_CoreUnitTest_${{ matrix.backend == 'SERIAL' && 'Serial1' || matrix.backend == 'OPENMP' && 'OpenMP' || 'Threads' }}
+
