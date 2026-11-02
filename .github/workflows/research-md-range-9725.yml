@@ -1,0 +1,33 @@
+name: Research MDRange backend guards
+on:
+  push:
+    branches:
+      - research/9725-backend-guard-validation
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  mdrange:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        backend: [SERIAL, OPENMP, THREADS]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        shell: bash
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug \
+            -DKokkos_ENABLE_TESTS=ON \
+            -DKokkos_ENABLE_SERIAL=${{ matrix.backend == 'SERIAL' && 'ON' || 'OFF' }} \
+            -DKokkos_ENABLE_OPENMP=${{ matrix.backend == 'OPENMP' && 'ON' || 'OFF' }} \
+            -DKokkos_ENABLE_THREADS=${{ matrix.backend == 'THREADS' && 'ON' || 'OFF' }}
+      - name: Build selected core unit tests
+        run: cmake --build build --target Kokkos_CoreUnitTest_${{ matrix.backend }}1 --parallel 2
+      - name: Run MDRange regression tests
+        shell: bash
+        run: |
+          ctest --test-dir build -N -R 'CoreUnitTest.*${{ matrix.backend }}'
+          ctest --test-dir build --output-on-failure -R 'CoreUnitTest.*${{ matrix.backend }}'
