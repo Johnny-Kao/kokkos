@@ -11,6 +11,30 @@ on:
   workflow_dispatch:
 
 jobs:
+  patch-format:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check changed C++ lines against Kokkos clang-format 16
+        run: |
+          if ! command -v git-clang-format-16 >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y clang-format-16
+          fi
+          git clang-format-16 --binary clang-format-16 --diff \
+            aee6bc0471deea43ef5274e62d3d168fdc5bd522 HEAD -- \
+            core/src/KokkosExp_MDRangePolicy.hpp \
+            core/unit_test/TestMDRangePolicyConstructors.hpp > format.diff
+          cat format.diff
+          if grep -q '^diff --git ' format.diff; then
+            echo 'Changed lines differ from clang-format 16 output' >&2
+            exit 1
+          fi
+
   native-tests:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
