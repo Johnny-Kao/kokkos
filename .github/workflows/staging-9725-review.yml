@@ -28,7 +28,10 @@ jobs:
           git clang-format-16 --binary clang-format-16 --diff \
             aee6bc0471deea43ef5274e62d3d168fdc5bd522 HEAD -- \
             core/src/KokkosExp_MDRangePolicy.hpp \
-            core/unit_test/TestMDRangePolicyConstructors.hpp > format.diff
+            core/unit_test/TestMDRangePolicyConstructors.hpp > format.diff 2>&1 || {
+              cat format.diff
+              exit 1
+            }
           cat format.diff
           if grep -q '^diff --git ' format.diff; then
             echo 'Changed lines differ from clang-format 16 output' >&2
