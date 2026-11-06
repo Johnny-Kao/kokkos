@@ -589,7 +589,6 @@ class MDRangePolicy<P, Properties...>
         Kokkos::abort(msg.c_str());
       }
     }
-
   }
 };
 
