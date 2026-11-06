@@ -372,6 +372,19 @@ TEST(TEST_CATEGORY, md_range_policy_recommendation_near_int_max) {
   EXPECT_EQ(automatic_tiles.tile_size()[1], max_index - 1);
   EXPECT_EQ(automatic_tiles.impl_num_tiles(), 1);
   EXPECT_EQ(automatic_tiles.impl_prod_tile_dims(), max_index - 1);
+  EXPECT_TRUE(automatic_tiles.impl_tune_tile_size());
+
+  // Iterate::Left must apply the same shrinking guard in reverse order.
+  using left_policy_type =
+      Kokkos::MDRangePolicy<Kokkos::DefaultHostExecutionSpace,
+                            Kokkos::Rank<2, Kokkos::Iterate::Left,
+                                         Kokkos::Iterate::Left>,
+                            Kokkos::IndexType<index_type>>;
+  left_policy_type left_tiles({0, 0}, {max_index - 1, 1});
+  EXPECT_EQ(left_tiles.tile_size()[0], max_index - 1);
+  EXPECT_EQ(left_tiles.tile_size()[1], 1);
+  EXPECT_EQ(left_tiles.impl_prod_tile_dims(), max_index - 1);
+  EXPECT_EQ(left_tiles.impl_num_tiles(), 1);
 }
 
 TEST(TEST_CATEGORY, md_range_policy_tile_product_at_int_limit) {
