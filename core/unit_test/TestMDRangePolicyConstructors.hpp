@@ -374,6 +374,17 @@ TEST(TEST_CATEGORY, md_range_policy_recommendation_near_int_max) {
   EXPECT_EQ(automatic_tiles.impl_prod_tile_dims(), max_index - 1);
 }
 
+TEST(TEST_CATEGORY, md_range_policy_tile_product_at_int_limit) {
+  using policy_type =
+      Kokkos::MDRangePolicy<Kokkos::DefaultHostExecutionSpace, Kokkos::Rank<2>>;
+  constexpr int max_tile_product = std::numeric_limits<int>::max();
+
+  // Equality with the maximum is valid; only an excess must be rejected.
+  policy_type policy({0, 0}, {1, 1}, {max_tile_product, 1});
+  EXPECT_EQ(policy.impl_prod_tile_dims(), max_tile_product);
+  EXPECT_EQ(policy.impl_num_tiles(), 1);
+}
+
 TEST(TEST_CATEGORY_DEATH, md_range_policy_explicit_tile_product_overflow) {
   using policy_type =
       Kokkos::MDRangePolicy<Kokkos::DefaultHostExecutionSpace, Kokkos::Rank<2>>;
