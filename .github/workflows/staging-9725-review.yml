@@ -1,0 +1,67 @@
+name: Staging 9725 native MDRangePolicy review regression
+
+on:
+  push:
+    branches:
+      - staging/9725-consolidated-review-20261106
+    paths:
+      - core/src/KokkosExp_MDRangePolicy.hpp
+      - core/unit_test/TestMDRangePolicyConstructors.hpp
+      - .github/workflows/staging-9725-review.yml
+  workflow_dispatch:
+
+jobs:
+  native-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: g++
+            backend: Serial
+            target: Kokkos_CoreUnitTest_Serial1
+            serial: "ON"
+            openmp: "OFF"
+            threads: "OFF"
+          - compiler: clang++
+            backend: Serial
+            target: Kokkos_CoreUnitTest_Serial1
+            serial: "ON"
+            openmp: "OFF"
+            threads: "OFF"
+          - compiler: g++
+            backend: OpenMP-only
+            target: Kokkos_CoreUnitTest_OpenMP
+            serial: "OFF"
+            openmp: "ON"
+            threads: "OFF"
+          - compiler: g++
+            backend: Threads-only
+            target: Kokkos_CoreUnitTest_Threads
+            serial: "OFF"
+            openmp: "OFF"
+            threads: "ON"
+    name: ${{ matrix.compiler }} / ${{ matrix.backend }} / UBSan
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          persist-credentials: false
+      - name: Configure Kokkos
+        run: |
+          cmake -S . -B build \
+            -DCMAKE_CXX_COMPILER=${{ matrix.compiler }} \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DKokkos_ENABLE_TESTS=ON \
+            -DKokkos_ENABLE_SERIAL=${{ matrix.serial }} \
+            -DKokkos_ENABLE_OPENMP=${{ matrix.openmp }} \
+            -DKokkos_ENABLE_THREADS=${{ matrix.threads }} \
+            -DKokkos_ENABLE_EXAMPLES=OFF \
+            -DCMAKE_CXX_FLAGS="-fsanitize=signed-integer-overflow -fno-sanitize-recover=signed-integer-overflow"
+      - name: Build native MDRangePolicy unit tests
+        run: cmake --build build --target ${{ matrix.target }} --parallel 4
+      - name: Run native regression and related MDRangePolicy tests
+        env:
+          UBSAN_OPTIONS: print_stacktrace=1:halt_on_error=1
+        run: ./build/core/unit_test/${{ matrix.target }} --gtest_filter='*.md_range_policy_*'
