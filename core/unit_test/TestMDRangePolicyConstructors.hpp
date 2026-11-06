@@ -378,7 +378,7 @@ TEST(TEST_CATEGORY_DEATH, md_range_policy_explicit_tile_product_overflow) {
   using policy_type =
       Kokkos::MDRangePolicy<Kokkos::DefaultHostExecutionSpace, Kokkos::Rank<2>>;
   ASSERT_DEATH({ (void)policy_type({0, 0}, {2, 2}, {46341, 46341}); },
-               "tile dimensions exceed int limit");
+               "Product of tile dimensions is greater than the maximum total tile size");
 }
 
 }  // namespace
