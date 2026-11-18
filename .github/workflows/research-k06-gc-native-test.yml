@@ -97,3 +97,4 @@ jobs:
           name: kokkos-k06-gc-openmp-asan
           path: research/k06-gc/ci-logs/
           if-no-files-found: warn
+# CI trigger via personal gh token, not GitHub App commit.
